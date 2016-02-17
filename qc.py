@@ -83,6 +83,16 @@ def combineTransforms(U1, U2):
 
 IdentityMatrix = ((1, 0), (0, 1))
 
+def changeLeadingState(U, V):
+	vlen = validState(V)
+	ulen = validMatrix(U)
+
+	while vlen > ulen:
+		U = combineTransforms(U, IdentityMatrix)
+		ulen <<= 1
+
+	changeState(U, V)
+
 def PhaseShiftGate(phi):
 	return ((1, 0), (0, math.cos(phi) + math.sin(phi) * 1J))
 
@@ -105,9 +115,8 @@ ControlledNotGate = ControlledGate(XGate)
 def qubitLength(V):
 	vlen = validState(V)
 	n = 0
-	while vlen > 1:
+	while vlen > (1 << n):
 		n += 1
-		vlen >>= 1
 	return n
 
 def printQubit(V):
@@ -180,8 +189,6 @@ def encodeBell(bit1, bit2, V):
 	assert bit1 == 0 or bit1 == 1
 	assert bit2 == 0 or bit2 == 1
 
-	vlen = validState(V)
-
 	if bit1 == 0:
 		if bit2 == 0:
 			U = IdentityMatrix
@@ -193,11 +200,7 @@ def encodeBell(bit1, bit2, V):
 		else:
 			U = multiplyMatrixByMatrix(ZGate, XGate)
 
-	while vlen > 2:
-		U = combineTransforms(U, IdentityMatrix)
-		vlen >>= 1
-
-	changeState(U, V)
+	changeLeadingState(U, V)
 
 def measureQubit(V):
 	# Input:
@@ -236,19 +239,13 @@ def measureBell(V):
 	#   The tuple (b1, b2) representing a measurement on the first two qubits
 	#   The input state vector V is overwritten
 
-	vlen = validState(V, 4)
-
 	# Apply a controlled NOT gate on the first two qubits
 	# followed by a Hadamard gate on the first qubit
 
 	U = combineTransforms(HadamardGate, IdentityMatrix)
 	U = multiplyMatrixByMatrix(U, ControlledNotGate)
 
-	while vlen > 4:
-		U = combineTransforms(U, IdentityMatrix)
-		vlen >>= 1
-
-	changeState(U, V)
+	changeLeadingState(U, V)
 
 	b1 = measureQubit(V) # Measure the first qubit
 	b2 = measureQubit(V) # Measure the second qubit
