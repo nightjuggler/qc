@@ -6,7 +6,7 @@
 #         of quantum computation including examples of superdense coding and quantum
 #         teleportation.
 #
-# Version 1.0 - February 13-16, 2016 - Pius Fischer
+#         February 13-18, 2016 - Pius Fischer
 #
 import math
 import random
@@ -112,56 +112,157 @@ ZGate = ((1, 0), (0, -1))
 
 ControlledNotGate = ControlledGate(XGate)
 
-def qubitLength(V):
-	vlen = validState(V)
-	n = 0
-	while vlen > (1 << n):
-		n += 1
-	return n
+qubitStateMap = {}
 
-def printQubit(V):
-	n = qubitLength(V)
+class QubitState(object):
+	def __init__(self, id, pa0, pa1):
+		global qubitStateMap
 
-	print '['
-	for i, e in enumerate(V):
-		print ('  {:0' + str(n) + 'b} -> {: }  p={}').format(i, e, abs(e) * abs(e))
-	print ']'
+		assert id not in qubitStateMap
+		assert 1.0 - (abs(pa0)**2 + abs(pa1)**2) < 0.000000000001
 
-def reorderState(V, i):
+		self.stateVector = [pa0, pa1]
+		self.qubitNames = [id]
+
+		qubitStateMap[id] = self
+
+	def extend(self, otherState):
+		if self is otherState:
+			return
+
+		self.stateVector = combineStates(self.stateVector, otherState.stateVector)
+		self.qubitNames.extend(otherState.qubitNames)
+
+		global qubitStateMap
+		for id in otherState.qubitNames:
+			qubitStateMap[id] = self
+
+	def length(self):
+		return len(self.qubitNames)
+
+	def reorder(self, newOrder):
+		if self.qubitNames[:len(newOrder)] == newOrder:
+			return
+
+		idMap = dict([(id, i) for i, id in enumerate(reversed(self.qubitNames))])
+
+		newOrder = [(id, idMap.pop(id)) for id in newOrder]
+
+		newOrder.extend([(id, idMap[id]) for id in self.qubitNames if id in idMap])
+
+		bitShift = [((1 << bit), bit, shift) for bit, (id, shift) in enumerate(reversed(newOrder))]
+
+		self.stateVector = [
+			self.stateVector[
+				sum([(((state & mask) >> bit) << shift) for mask, bit, shift in bitShift])
+			]
+			for state in xrange(len(self.stateVector))
+		]
+
+		self.qubitNames = [id for id, i in newOrder]
+
+	def transform(self, unitaryMatrix):
+		changeLeadingState(unitaryMatrix, self.stateVector)
+
+	def measure(self, id):
+		self.reorder([id])
+
+		# The probability that the measurement will be 0 is the sum of the squares of
+		# the absolute values of the first half of the elements of the state vector.
+
+		V = self.stateVector
+		vlen = len(V)
+
+		prob0 = sum([abs(pa)**2 for pa in V[:vlen/2]])
+		prob1 = sum([abs(pa)**2 for pa in V[vlen/2:]])
+
+		assert 1.0 - (prob0 + prob1) < 0.000000000001
+
+		if random.random() < prob0:
+			measurement = 0
+			V[vlen/2:] = []
+			prob0, prob1 = 1, 0
+		else:
+			measurement = 1
+			V[:vlen/2] = []
+			prob0, prob1 = 0, 1
+
+		norm = math.sqrt(sum([abs(pa)**2 for pa in V]))
+		for i, pa in enumerate(V):
+			V[i] = pa / norm
+
+		del self.qubitNames[0]
+
+		global qubitStateMap
+		del qubitStateMap[id]
+		QubitState(id, prob0, prob1)
+
+		return measurement
+
+	def printState(self, printed=None):
+		n = len(self.qubitNames)
+
+		print ','.join(self.qubitNames), '= ['
+		for i, pa in enumerate(self.stateVector):
+			print ('  {:0' + str(n) + 'b} -> {: }  p={}').format(i, pa, abs(pa)**2)
+		print ']'
+
+		if printed is not None:
+			printed.extend(self.qubitNames)
+
+def clearSystem():
+	global qubitStateMap
+	qubitStateMap.clear()
+
+def createQubit(id, pa0, pa1):
+	QubitState(id, pa0, pa1)
+
+def removeQubit(id):
+	global qubitStateMap
+	assert qubitStateMap[id].length() == 1
+	del qubitStateMap[id]
+
+def printQubit(id):
+	global qubitStateMap
+	qubitStateMap[id].printState()
+
+def printSystem():
+	global qubitStateMap
+	printed = []
+	for id, state in qubitStateMap.iteritems():
+		if id not in printed:
+			state.printState(printed)
+
+def applyGate(gate, *qubits):
+	ulen = validMatrix(gate)
+	qlen = 1 << len(qubits)
+	assert ulen == qlen >= 2
+
+	# Combine state vectors as necessary so all the qubits are in the same state vector:
+
+	global qubitStateMap
+	qState = qubitStateMap[qubits[0]]
+	for id in qubits[1:]:
+		qState.extend(qubitStateMap[id])
+
+	qState.reorder(qubits)
+	qState.transform(gate)
+
+def measureQubit(id):
+	global qubitStateMap
+	return qubitStateMap[id].measure(id)
+
+def prepareBell(q1, q2, initialState=0):
 	# Input:
-	#   V is a state vector for n qubits (n > 0)
-	#   i is the index of the qubit to be moved to the front (-n <= i < n)
-	# Output:
-	#   V which is overwritten
-	#   On input, V = |Q0 Q1 ... Qi-1 Qi Qi+1 ... Qn-1>
-	#   On output, V = |Qi Q0 Q1 ... Qi-1 Qi+1 ... Qn-1>
-
-	n = qubitLength(V)
-
-	assert -n <= i < n
-
-	if i < 0:
-		i += n
-
-	n1 = n - 1
-	ni = n1 - i
-	hi_mask = (((1 << n1) - 1) >> ni) << ni
-	lo_mask = (1 << ni) - 1
-
-	newState = [V[((j & hi_mask) << 1) + (j & lo_mask) + ((j >> n1) << ni)] for j in xrange(1 << n)]
-
-	for j, e in enumerate(newState):
-		V[j] = e
-
-	return V
-
-def prepareBell(initialState=0):
-	# Input:
-	#   An optional integer between 0 and 3 representing the initial state
-	#   of the two qubits to be entangled (default is 0)
-	# Output:
-	#   A state vector for two qubits entangled in one of the four Bell states
-	#   (depending on the initial state):
+	#   q1 and q2 are the names to be given to the two entangled qubits.
+	#
+	#   initialState is an optional integer between 0 and 3 representing the
+	#   initial (pre-entangled) state of the two qubits. The default is 0.
+	#
+	# Output: None
+	#
+	#   The two qubits q1 and q2 are created and entangled with each other in
+	#   one of the four Bell states (depending on the initial state):
 	#
 	#   Initial state                Bell state
 	#   ------------------------     ----------
@@ -172,20 +273,26 @@ def prepareBell(initialState=0):
 
 	assert 0 <= initialState <= 3
 
-	q1 = [1, 0] if (initialState & 2) == 0 else [0, 1]
-	q2 = [1, 0] if (initialState & 1) == 0 else [0, 1]
+	if (initialState & 2) == 0:
+		createQubit(q1, 1, 0)
+	else:
+		createQubit(q1, 0, 1)
 
-	changeState(HadamardGate, q1)
-	return changeState(ControlledNotGate, combineStates(q1, q2))
+	if (initialState & 1) == 0:
+		createQubit(q2, 1, 0)
+	else:
+		createQubit(q2, 0, 1)
 
-def encodeBell(bit1, bit2, V):
+	applyGate(HadamardGate, q1)
+	applyGate(ControlledNotGate, q1, q2)
+
+def encodeBell(bit1, bit2, qubit):
 	# Input:
-	#   bit1 is a classical bit (0 or 1)
-	#   bit2 is a classical bit (0 or 1)
-	#   V is a state vector for one or more qubits
-	# Output:
-	#   None, but the input state vector V is overwritten
-
+	#   "bit1" and "bit2" are classical bits (0 or 1) that determine which
+	#   unitary matrix (quantum gate) to apply to the input "qubit".
+	#
+	# Output: None
+	#
 	assert bit1 == 0 or bit1 == 1
 	assert bit2 == 0 or bit2 == 1
 
@@ -200,107 +307,81 @@ def encodeBell(bit1, bit2, V):
 		else:
 			U = multiplyMatrixByMatrix(ZGate, XGate)
 
-	changeLeadingState(U, V)
+	applyGate(U, qubit)
 
-def measureQubit(V):
+def measureBell(q1, q2):
 	# Input:
-	#   V is a state vector for one or more qubits
+	#   q1 and q2 are the two qubits to be measured "in the Bell basis"
 	# Output:
-	#   A classical bit (0 or 1) representing a measurement on the first qubit
-	#   The input state vector V is overwritten
+	#   The tuple (b1, b2):
+	#   b1 is the result of the measurement on q1
+	#   b2 is the result of the measurement on q2
 
-	vlen = validState(V)
+	# Apply a controlled NOT gate on q1 and q2, with q1 as the control bit.
+	# Then apply a Hadamard gate on q1.
 
-	# The probability that the measurement will be 0 is the sum of the squares
-	# of the absolute values of the first len(v)/2 elements of the state vector
+	applyGate(ControlledNotGate, q1, q2)
+	applyGate(HadamardGate, q1)
 
-	prob0 = sum([abs(e) * abs(e) for e in V[:vlen/2]])
-	prob1 = sum([abs(e) * abs(e) for e in V[vlen/2:]])
-
-	assert 1.0 - (prob0 + prob1) < 0.000000000001
-
-	if random.random() < prob0:
-		measurement = 0
-		V[vlen/2:] = []
-	else:
-		measurement = 1
-		V[:vlen/2] = []
-
-	norm = math.sqrt(sum([abs(e) * abs(e) for e in V]))
-	for i, e in enumerate(V):
-		V[i] = e / norm
-
-	return measurement
-
-def measureBell(V):
-	# Input:
-	#   V is a state vector for two or more qubits
-	# Output:
-	#   The tuple (b1, b2) representing a measurement on the first two qubits
-	#   The input state vector V is overwritten
-
-	# Apply a controlled NOT gate on the first two qubits
-	# followed by a Hadamard gate on the first qubit
-
-	U = combineTransforms(HadamardGate, IdentityMatrix)
-	U = multiplyMatrixByMatrix(U, ControlledNotGate)
-
-	changeLeadingState(U, V)
-
-	b1 = measureQubit(V) # Measure the first qubit
-	b2 = measureQubit(V) # Measure the second qubit
+	b1 = measureQubit(q1)
+	b2 = measureQubit(q2)
 
 	return b1, b2
 
-def superdenseCoding(a1, a2):
-	print '---- superdenseCoding() ----'
-	print a1, a2
-	qAB = prepareBell()
-	encodeBell(a1, a2, qAB) # Alice
-	(b1, b2) = measureBell(qAB) # Bob
-	print b1, b2
+def sendSuperdense(a1, a2, senderQubit, receiverQubit):
+	prepareBell(senderQubit, receiverQubit)
+	encodeBell(a1, a2, senderQubit) # Alice
+	return measureBell(senderQubit, receiverQubit) # Bob
 
-def quantumTeleportation(qC):
-	print '---- quantumTeleportation() ----'
-	printQubit(qC)
+def teleport(fromQubit, viaQubit, toQubit):
+	prepareBell(viaQubit, toQubit)
+	(b1, b2) = measureBell(fromQubit, viaQubit) # Alice
+	encodeBell(b1, b2, toQubit) # Bob
 
-	qAB = prepareBell()
-	qABC = combineStates(qAB, qC)
+def testSuperdenseCoding(a1, a2):
+	#
+	# Send two classical bits a1 and a2 via superdense coding using entangled qubits A and B
+	#
+	qA, qB = 'A', 'B'
 
-	printQubit(qABC)
-	reorderState(qABC, 2) # reorder AB12...n -> 1AB2...n
-	printQubit(qABC)
+	clearSystem()
 
-	(b1, b2) = measureBell(qABC) # Alice
-	encodeBell(b1, b2, qABC) # Bob
+	b1, b2 = sendSuperdense(a1, a2, qA, qB)
 
-	print b1, b2
-	printQubit(qABC)
-	return qABC
-
-def teleportEntangled():
-	print '---- teleportEntangled() ----'
-
-	q12 = prepareBell()
-	qB2 = quantumTeleportation(q12)
-
-	# Now qB is entangled with q2
-	b1 = measureQubit(qB2) # Measure qB
-	b2 = measureQubit(qB2) # Measure q2
-	print b1, b2
+	assert a1 == b1 and a2 == b2
 
 def testRandomness():
+	qA, qB = 'A', 'B'
 	count = [0, 0]
 	for i in xrange(0, 10000):
-		v = prepareBell()
-		b1 = measureQubit(v)
-		b2 = measureQubit(v)
+		clearSystem()
+		prepareBell(qA, qB)
+		b1 = measureQubit(qA)
+		b2 = measureQubit(qB)
 		assert b1 == b2
 		count[b1] += 1
 	print '0:', count[0]
 	print '1:', count[1]
 
 if __name__ == '__main__':
-	superdenseCoding(1, 1)
-	quantumTeleportation([0.6, 0.8])
-	teleportEntangled()
+	qA, qB, qC, qD = 'A', 'B', 'C', 'D'
+
+	testSuperdenseCoding(0, 0)
+	testSuperdenseCoding(0, 1)
+	testSuperdenseCoding(1, 0)
+	testSuperdenseCoding(1, 1)
+
+	# Create a qubit C and teleport its state (via A) to qubit B
+	clearSystem()
+	createQubit(qC, 0.6, 0.8)
+	teleport(qC, qA, qB)
+
+	# Entangle A with B and teleport the state of A to D (via C)
+	clearSystem()
+	prepareBell(qA, qB)
+	teleport(qA, qC, qD)
+
+	# Now B is entangled with D
+	b1 = measureQubit(qB)
+	b2 = measureQubit(qD)
+	assert b1 == b2
