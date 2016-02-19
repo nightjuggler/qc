@@ -1,5 +1,5 @@
 #
-# qc.py - Python Quantum Computing Library
+# qc.py - Quantum Computing Library for Python
 #
 #         by Pius Fischer, February 13-18, 2016
 #
@@ -38,6 +38,9 @@ __all__ = (
 	'PhaseShiftGate',
 	'ControlledGate',
 	'ControlledNotGate',
+	'SwapGate',
+	'SqrtSwapGate',
+	'FourierTransform',
 
 	'multiplyMatrixByScalar',
 	'multiplyMatrixByMatrix',
@@ -88,6 +91,22 @@ def multiplyMatrixByMatrix(U1, U2):
 	U2 = zip(*U2)
 	return [[sum([e1 * e2 for e1, e2 in zip(row1, row2)]) for row2 in U2] for row1 in U1]
 
+def simplify(N):
+	real = N.real
+	imag = N.imag
+
+	if abs(real) < 1e-15:
+		real = 0
+		N = complex(0, imag)
+	elif real == int(real):
+		real = int(real)
+
+	if abs(imag) < 1e-15:
+		imag = 0
+		N = real
+
+	return N
+
 IdentityMatrix = ((1, 0), (0, 1))
 
 HadamardGate = multiplyMatrixByScalar(1/math.sqrt(2), ((1, 1), (1, -1)))
@@ -97,7 +116,7 @@ YGate = ((0, -1J), (1J, 0))
 ZGate = ((1, 0), (0, -1))
 
 def PhaseShiftGate(phi):
-	return ((1, 0), (0, math.cos(phi) + math.sin(phi) * 1J))
+	return ((1, 0), (0, simplify(complex(math.cos(phi), math.sin(phi)))))
 
 def ControlledGate(U):
 	validMatrix(U, 2)
@@ -108,6 +127,25 @@ def ControlledGate(U):
 		(0, 0, U[1][0], U[1][1]))
 
 ControlledNotGate = ControlledGate(XGate)
+
+SwapGate = (
+		(1, 0, 0, 0),
+		(0, 0, 1, 0),
+		(0, 1, 0, 0),
+		(0, 0, 0, 1))
+
+SqrtSwapGate = (
+		(1,     0,          0,      0),
+		(0, 0.5 + 0.5J, 0.5 - 0.5J, 0),
+		(0, 0.5 - 0.5J, 0.5 + 0.5J, 0),
+		(0,     0,          0,      1))
+
+def FourierTransform(N):
+	phi = 2 * math.pi / N
+	w = complex(math.cos(phi), math.sin(phi))
+	sqrtN = math.sqrt(N)
+
+	return [[simplify(w ** (row * col) / sqrtN) for col in xrange(N)] for row in xrange(N)]
 
 def changeState(U, V):
 	# Input:
@@ -166,7 +204,7 @@ class QubitState(object):
 		global qubitStateMap
 
 		assert id not in qubitStateMap
-		assert 1.0 - (abs(pa0)**2 + abs(pa1)**2) < 0.000000000001
+		assert 1.0 - (abs(pa0)**2 + abs(pa1)**2) < 1e-12
 
 		self.stateVector = [pa0, pa1]
 		self.qubitNames = [id]
