@@ -1,15 +1,62 @@
-#!/usr/bin/python
 #
-# qc.py - Quantum Computing Library
+# qc.py - Python Quantum Computing Library
 #
-#         Various functions for mathematically simulating the quantum circuit model
-#         of quantum computation including examples of superdense coding and quantum
-#         teleportation.
+#         by Pius Fischer, February 13-18, 2016
 #
-#         February 13-18, 2016 - Pius Fischer
+#         Various functions for mathematically simulating the quantum circuit model of computation.
+#
+#         Example 1 - Superdense coding (sending two classical bits a1 and a2 from Alice to Bob via
+#                     an entangled pair of qubits)
+#
+#         qA, qB = 'A', 'B'             <-- Define the names to be used for the qubits.
+#         prepareBell(qA, qB)           <-- Create the entangled pair qA and qB.
+#         encodeBell(a1, a2, qA)        <-- Alice encodes a1 and a2 onto qA (which also affects qB).
+#         b1, b2 = measureBell(qA, qB)  <-- Bob recovers b1 and b2 by Bell measurement of qA and qB.
+#
+#         See the sendSuperdense() function below.
+#
+#         Example 2 - Quantum teleportation (transferring the state of a qubit qC from Alice to Bob
+#                     via an entangled pair of qubits qA and qB and two classical bits b1 and b2)
+#
+#         qA, qB, qC = 'A', 'B', 'C'    <-- Define the names to be used for the qubits.
+#         prepareBell(qA, qB)           <-- Create the entangled pair qA and qB.
+#         b1, b2 = measureBell(qC, qA)  <-- Alice gets b1 and b2 by Bell measurement of qC and qA.
+#         encodeBell(b1, b2, qB)        <-- Bob encodes b1 and b2 onto qB. Now qB is in the same
+#                                           state that qC was in before Alice's Bell measurement.
+#
+#         See the teleportQubit() function below.
 #
 import math
 import random
+
+__all__ = (
+	'IdentityMatrix',
+	'HadamardGate',
+	'XGate',
+	'YGate',
+	'ZGate',
+	'PhaseShiftGate',
+	'ControlledGate',
+	'ControlledNotGate',
+
+	'multiplyMatrixByScalar',
+	'multiplyMatrixByMatrix',
+
+	'clearSystem',
+	'printSystem',
+	'printQubit',
+	'createQubit',
+	'removeQubit',
+	'measureQubit',
+	'applyGate',
+
+	'prepareBell',
+	'encodeBell',
+	'measureBell',
+
+	'sendSuperdense',
+	'teleportQubit',
+)
 
 def validState(V, minSize=2):
 	vlen = len(V)
@@ -40,6 +87,27 @@ def multiplyMatrixByMatrix(U1, U2):
 
 	U2 = zip(*U2)
 	return [[sum([e1 * e2 for e1, e2 in zip(row1, row2)]) for row2 in U2] for row1 in U1]
+
+IdentityMatrix = ((1, 0), (0, 1))
+
+HadamardGate = multiplyMatrixByScalar(1/math.sqrt(2), ((1, 1), (1, -1)))
+
+XGate = ((0, 1), (1, 0))
+YGate = ((0, -1J), (1J, 0))
+ZGate = ((1, 0), (0, -1))
+
+def PhaseShiftGate(phi):
+	return ((1, 0), (0, math.cos(phi) + math.sin(phi) * 1J))
+
+def ControlledGate(U):
+	validMatrix(U, 2)
+
+	return ((1, 0, 0, 0),
+		(0, 1, 0, 0),
+		(0, 0, U[0][0], U[0][1]),
+		(0, 0, U[1][0], U[1][1]))
+
+ControlledNotGate = ControlledGate(XGate)
 
 def changeState(U, V):
 	# Input:
@@ -81,8 +149,6 @@ def combineTransforms(U1, U2):
 
 	return [[e1 * e2 for e1 in row1 for e2 in row2] for row1 in U1 for row2 in U2]
 
-IdentityMatrix = ((1, 0), (0, 1))
-
 def changeLeadingState(U, V):
 	vlen = validState(V)
 	ulen = validMatrix(U)
@@ -92,25 +158,6 @@ def changeLeadingState(U, V):
 		ulen <<= 1
 
 	changeState(U, V)
-
-def PhaseShiftGate(phi):
-	return ((1, 0), (0, math.cos(phi) + math.sin(phi) * 1J))
-
-def ControlledGate(U):
-	validMatrix(U, 2)
-
-	return ((1, 0, 0, 0),
-		(0, 1, 0, 0),
-		(0, 0, U[0][0], U[0][1]),
-		(0, 0, U[1][0], U[1][1]))
-
-HadamardGate = multiplyMatrixByScalar(1/math.sqrt(2), ((1, 1), (1, -1)))
-
-XGate = ((0, 1), (1, 0))
-YGate = ((0, -1J), (1J, 0))
-ZGate = ((1, 0), (0, -1))
-
-ControlledNotGate = ControlledGate(XGate)
 
 qubitStateMap = {}
 
@@ -150,11 +197,11 @@ class QubitState(object):
 
 		newOrder.extend([(id, idMap[id]) for id in self.qubitNames if id in idMap])
 
-		bitShift = [((1 << bit), bit, shift) for bit, (id, shift) in enumerate(reversed(newOrder))]
+		bitShift = [(1 << bit, bit, shift) for bit, (id, shift) in enumerate(reversed(newOrder))]
 
 		self.stateVector = [
 			self.stateVector[
-				sum([(((state & mask) >> bit) << shift) for mask, bit, shift in bitShift])
+				sum([((state & mask) >> bit << shift) for mask, bit, shift in bitShift])
 			]
 			for state in xrange(len(self.stateVector))
 		]
@@ -181,34 +228,31 @@ class QubitState(object):
 		if random.random() < prob0:
 			measurement = 0
 			V[vlen/2:] = []
+			norm = math.sqrt(prob0)
 			prob0, prob1 = 1, 0
 		else:
 			measurement = 1
 			V[:vlen/2] = []
+			norm = math.sqrt(prob1)
 			prob0, prob1 = 0, 1
 
-		norm = math.sqrt(sum([abs(pa)**2 for pa in V]))
 		for i, pa in enumerate(V):
 			V[i] = pa / norm
 
-		del self.qubitNames[0]
-
 		global qubitStateMap
 		del qubitStateMap[id]
+		del self.qubitNames[0]
 		QubitState(id, prob0, prob1)
 
 		return measurement
 
-	def printState(self, printed=None):
+	def printState(self):
 		n = len(self.qubitNames)
 
 		print ','.join(self.qubitNames), '= ['
 		for i, pa in enumerate(self.stateVector):
 			print ('  {:0' + str(n) + 'b} -> {: }  p={}').format(i, pa, abs(pa)**2)
 		print ']'
-
-		if printed is not None:
-			printed.extend(self.qubitNames)
 
 def clearSystem():
 	global qubitStateMap
@@ -228,10 +272,11 @@ def printQubit(id):
 
 def printSystem():
 	global qubitStateMap
-	printed = []
+	printed = {}
 	for id, state in qubitStateMap.iteritems():
-		if id not in printed:
-			state.printState(printed)
+		if state not in printed:
+			state.printState()
+			printed[state] = True
 
 def applyGate(gate, *qubits):
 	ulen = validMatrix(gate)
@@ -288,8 +333,8 @@ def prepareBell(q1, q2, initialState=0):
 
 def encodeBell(bit1, bit2, qubit):
 	# Input:
-	#   "bit1" and "bit2" are classical bits (0 or 1) that determine which
-	#   unitary matrix (quantum gate) to apply to the input "qubit".
+	#   bit1 and bit2 are classical bits that determine which quantum gate(s)
+	#   to apply to the input qubit.
 	#
 	# Output: None
 	#
@@ -330,58 +375,10 @@ def measureBell(q1, q2):
 
 def sendSuperdense(a1, a2, senderQubit, receiverQubit):
 	prepareBell(senderQubit, receiverQubit)
-	encodeBell(a1, a2, senderQubit) # Alice
-	return measureBell(senderQubit, receiverQubit) # Bob
+	encodeBell(a1, a2, senderQubit)
+	return measureBell(senderQubit, receiverQubit)
 
-def teleport(fromQubit, viaQubit, toQubit):
+def teleportQubit(fromQubit, viaQubit, toQubit):
 	prepareBell(viaQubit, toQubit)
-	(b1, b2) = measureBell(fromQubit, viaQubit) # Alice
-	encodeBell(b1, b2, toQubit) # Bob
-
-def testSuperdenseCoding(a1, a2):
-	#
-	# Send two classical bits a1 and a2 via superdense coding using entangled qubits A and B
-	#
-	qA, qB = 'A', 'B'
-
-	clearSystem()
-
-	b1, b2 = sendSuperdense(a1, a2, qA, qB)
-
-	assert a1 == b1 and a2 == b2
-
-def testRandomness():
-	qA, qB = 'A', 'B'
-	count = [0, 0]
-	for i in xrange(0, 10000):
-		clearSystem()
-		prepareBell(qA, qB)
-		b1 = measureQubit(qA)
-		b2 = measureQubit(qB)
-		assert b1 == b2
-		count[b1] += 1
-	print '0:', count[0]
-	print '1:', count[1]
-
-if __name__ == '__main__':
-	qA, qB, qC, qD = 'A', 'B', 'C', 'D'
-
-	testSuperdenseCoding(0, 0)
-	testSuperdenseCoding(0, 1)
-	testSuperdenseCoding(1, 0)
-	testSuperdenseCoding(1, 1)
-
-	# Create a qubit C and teleport its state (via A) to qubit B
-	clearSystem()
-	createQubit(qC, 0.6, 0.8)
-	teleport(qC, qA, qB)
-
-	# Entangle A with B and teleport the state of A to D (via C)
-	clearSystem()
-	prepareBell(qA, qB)
-	teleport(qA, qC, qD)
-
-	# Now B is entangled with D
-	b1 = measureQubit(qB)
-	b2 = measureQubit(qD)
-	assert b1 == b2
+	b1, b2 = measureBell(fromQubit, viaQubit)
+	encodeBell(b1, b2, toQubit)
