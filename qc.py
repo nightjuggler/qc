@@ -1,7 +1,7 @@
 #
 # qc.py - Quantum Computing Library for Python
 #
-#         by Pius Fischer, February 13-18, 2016
+#         by Pius Fischer, February 13-20, 2016
 #
 #         Various functions for mathematically simulating the quantum circuit model of computation.
 #
@@ -464,4 +464,3 @@ def quantumFourierTransform(x):
 		applyGate(SwapGate, x[i], x[n - 1 - i])
 
 	applyGate(IdentityMatrixN(1 << n), *x) # Reorder the state vector to be in the same order as the input x
-
