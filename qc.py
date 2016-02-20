@@ -8,7 +8,9 @@
 #         Example 1 - Superdense coding (sending two classical bits a1 and a2 from Alice to Bob via
 #                     an entangled pair of qubits)
 #
+#         from qc import *              <-- Import this library.
 #         qA, qB = 'A', 'B'             <-- Define the names to be used for the qubits.
+#         a1, a2 = 1, 0                 <-- Initialize the bits to be sent.
 #         prepareBell(qA, qB)           <-- Create the entangled pair qA and qB.
 #         encodeBell(a1, a2, qA)        <-- Alice encodes a1 and a2 onto qA (which also affects qB).
 #         b1, b2 = measureBell(qA, qB)  <-- Bob recovers b1 and b2 by Bell measurement of qA and qB.
@@ -18,7 +20,9 @@
 #         Example 2 - Quantum teleportation (transferring the state of a qubit qC from Alice to Bob
 #                     via an entangled pair of qubits qA and qB and two classical bits b1 and b2)
 #
+#         from qc import *              <-- Import this library.
 #         qA, qB, qC = 'A', 'B', 'C'    <-- Define the names to be used for the qubits.
+#         createQubit(qC, 0.8, 0.6)     <-- Initialize the qubit to be teleported.
 #         prepareBell(qA, qB)           <-- Create the entangled pair qA and qB.
 #         b1, b2 = measureBell(qC, qA)  <-- Alice gets b1 and b2 by Bell measurement of qC and qA.
 #         encodeBell(b1, b2, qB)        <-- Bob encodes b1 and b2 onto qB. Now qB is in the same
@@ -31,6 +35,7 @@ import random
 
 __all__ = (
 	'IdentityMatrix',
+	'IdentityMatrixN',
 	'HadamardGate',
 	'XGate',
 	'YGate',
@@ -44,6 +49,10 @@ __all__ = (
 
 	'multiplyMatrixByScalar',
 	'multiplyMatrixByMatrix',
+	'combineTransforms',
+	'roundedMatrix',
+	'roundedStateVector',
+	'compareStateVectors',
 
 	'clearSystem',
 	'printSystem',
@@ -52,6 +61,7 @@ __all__ = (
 	'removeQubit',
 	'measureQubit',
 	'applyGate',
+	'qubitArray',
 
 	'prepareBell',
 	'encodeBell',
@@ -59,6 +69,7 @@ __all__ = (
 
 	'sendSuperdense',
 	'teleportQubit',
+	'quantumFourierTransform',
 )
 
 def validState(V, minSize=2):
@@ -92,22 +103,23 @@ def multiplyMatrixByMatrix(U1, U2):
 	return [[sum([e1 * e2 for e1, e2 in zip(row1, row2)]) for row2 in U2] for row1 in U1]
 
 def simplify(N):
-	real = N.real
-	imag = N.imag
+	real = round(N.real, 14)
+	imag = round(N.imag, 14)
 
-	if abs(real) < 1e-15:
+	if real == 0: # Sometimes real is rounded to -0 ... Really set it to 0.
 		real = 0
-		N = complex(0, imag)
-	elif real == int(real):
-		real = int(real)
+	if imag == 0:
+		return real
 
-	if abs(imag) < 1e-15:
-		imag = 0
-		N = real
+	return complex(real, imag)
 
-	return N
+def roundedMatrix(U):
+	return [[simplify(col) for col in row] for row in U]
 
 IdentityMatrix = ((1, 0), (0, 1))
+
+def IdentityMatrixN(N):
+	return [[1 if row == col else 0 for col in xrange(N)] for row in xrange(N)]
 
 HadamardGate = multiplyMatrixByScalar(1/math.sqrt(2), ((1, 1), (1, -1)))
 
@@ -116,7 +128,7 @@ YGate = ((0, -1J), (1J, 0))
 ZGate = ((1, 0), (0, -1))
 
 def PhaseShiftGate(phi):
-	return ((1, 0), (0, simplify(complex(math.cos(phi), math.sin(phi)))))
+	return ((1, 0), (0, complex(math.cos(phi), math.sin(phi))))
 
 def ControlledGate(U):
 	validMatrix(U, 2)
@@ -145,7 +157,7 @@ def FourierTransform(N):
 	w = complex(math.cos(phi), math.sin(phi))
 	sqrtN = math.sqrt(N)
 
-	return [[simplify(w ** (row * col) / sqrtN) for col in xrange(N)] for row in xrange(N)]
+	return [[(w ** (row * col) / sqrtN) for col in xrange(N)] for row in xrange(N)]
 
 def changeState(U, V):
 	# Input:
@@ -201,10 +213,8 @@ qubitStateMap = {}
 
 class QubitState(object):
 	def __init__(self, id, pa0, pa1):
-		global qubitStateMap
-
 		assert id not in qubitStateMap
-		assert 1.0 - (abs(pa0)**2 + abs(pa1)**2) < 1e-12
+		assert 1.0 - (abs(pa0)**2 + abs(pa1)**2) < 1e-14
 
 		self.stateVector = [pa0, pa1]
 		self.qubitNames = [id]
@@ -218,7 +228,6 @@ class QubitState(object):
 		self.stateVector = combineStates(self.stateVector, otherState.stateVector)
 		self.qubitNames.extend(otherState.qubitNames)
 
-		global qubitStateMap
 		for id in otherState.qubitNames:
 			qubitStateMap[id] = self
 
@@ -261,7 +270,7 @@ class QubitState(object):
 		prob0 = sum([abs(pa)**2 for pa in V[:vlen/2]])
 		prob1 = sum([abs(pa)**2 for pa in V[vlen/2:]])
 
-		assert 1.0 - (prob0 + prob1) < 0.000000000001
+		assert 1.0 - (prob0 + prob1) < 1e-14
 
 		if random.random() < prob0:
 			measurement = 0
@@ -277,39 +286,37 @@ class QubitState(object):
 		for i, pa in enumerate(V):
 			V[i] = pa / norm
 
-		global qubitStateMap
 		del qubitStateMap[id]
 		del self.qubitNames[0]
 		QubitState(id, prob0, prob1)
 
 		return measurement
 
+	def roundedStateVector(self):
+		return [simplify(pa) for pa in self.stateVector]
+
 	def printState(self):
 		n = len(self.qubitNames)
 
 		print ','.join(self.qubitNames), '= ['
 		for i, pa in enumerate(self.stateVector):
-			print ('  {:0' + str(n) + 'b} -> {: }  p={}').format(i, pa, abs(pa)**2)
+			print ('  {:0' + str(n) + 'b} -> {: }  p={}').format(i, simplify(pa), simplify(abs(pa)**2))
 		print ']'
 
 def clearSystem():
-	global qubitStateMap
 	qubitStateMap.clear()
 
 def createQubit(id, pa0, pa1):
 	QubitState(id, pa0, pa1)
 
 def removeQubit(id):
-	global qubitStateMap
 	assert qubitStateMap[id].length() == 1
 	del qubitStateMap[id]
 
 def printQubit(id):
-	global qubitStateMap
 	qubitStateMap[id].printState()
 
 def printSystem():
-	global qubitStateMap
 	printed = {}
 	for id, state in qubitStateMap.iteritems():
 		if state not in printed:
@@ -323,7 +330,6 @@ def applyGate(gate, *qubits):
 
 	# Combine state vectors as necessary so all the qubits are in the same state vector:
 
-	global qubitStateMap
 	qState = qubitStateMap[qubits[0]]
 	for id in qubits[1:]:
 		qState.extend(qubitStateMap[id])
@@ -332,8 +338,28 @@ def applyGate(gate, *qubits):
 	qState.transform(gate)
 
 def measureQubit(id):
-	global qubitStateMap
 	return qubitStateMap[id].measure(id)
+
+def roundedStateVector(id):
+	return qubitStateMap[id].roundedStateVector()
+
+def compareStateVectors(x, y, verbose=False):
+	rx = roundedStateVector(x)
+	ry = roundedStateVector(y)
+
+	equal = True
+	for i, (a, b) in enumerate(zip(rx, ry)):
+		if a != b and abs(a - b) > 1.1e-14:
+			equal = False
+			if verbose:
+				print "{}[{}] != {}[{}]:".format(x, i, y, i)
+				print "{}[{}] = {:.16f}".format(x, i, a)
+				print "{}[{}] = {:.16f}".format(y, i, b)
+				print
+	return equal
+
+def qubitArray(namePrefix, size):
+	return [namePrefix + str(i + 1) for i in xrange(size)]
 
 def prepareBell(q1, q2, initialState=0):
 	# Input:
@@ -420,3 +446,22 @@ def teleportQubit(fromQubit, viaQubit, toQubit):
 	prepareBell(viaQubit, toQubit)
 	b1, b2 = measureBell(fromQubit, viaQubit)
 	encodeBell(b1, b2, toQubit)
+
+def quantumFourierTransform(x):
+	#
+	# Apply the quantum Fourier transform on x by applying Hadamard gates and controlled phase gates.
+	#
+	# This is equivalent to applyGate(FourierTransform(1 << len(x)), *x)
+	#
+	n = len(x)
+	for i in xrange(n):
+		for j in xrange(i, 0, -1):
+			R = ControlledGate(PhaseShiftGate(math.pi / (1 << j)))
+			applyGate(R, x[i], x[i - j])
+		applyGate(HadamardGate, x[i])
+
+	for i in xrange(n / 2):
+		applyGate(SwapGate, x[i], x[n - 1 - i])
+
+	applyGate(IdentityMatrixN(1 << n), *x) # Reorder the state vector to be in the same order as the input x
+
