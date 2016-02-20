@@ -2,7 +2,7 @@
 
 **qc.py** is a Python library for mathematically simulating the quantum circuit model of computation.
 
-## Example 1 - [Superdense coding](https://en.wikipedia.org/wiki/Superdense_coding)
+## Example 1 - [Superdense Coding](https://en.wikipedia.org/wiki/Superdense_coding)
 
 Send two classical bits a1 and a2 from Alice to Bob via an entangled pair of qubits:
 
@@ -17,9 +17,9 @@ encodeBell(a1, a2, qA)        # Alice encodes a1 and a2 onto qA (which also affe
 b1, b2 = measureBell(qA, qB)  # Bob recovers b1 and b2 by Bell measurement of qA and qB.
 ```
 
-This is implemented by the `sendSuperdense()` function in [qc.py](qc.py).
+This is implemented by the [`sendSuperdense()`](https://github.com/nightjuggler/qc/blob/92667c71095a66dbd80e3bbb51dd2cef9171b55b/qc.py#L440-L443) function.
 
-## Example 2 - [Quantum teleportation](https://en.wikipedia.org/wiki/Quantum_teleportation)
+## Example 2 - [Quantum Teleportation](https://en.wikipedia.org/wiki/Quantum_teleportation)
 
 Transfer the state of a qubit qC from Alice to Bob via an entangled pair of qubits qA and qB and two classical bits b1 and b2:
 
@@ -35,11 +35,11 @@ encodeBell(b1, b2, qB)        # Bob encodes b1 and b2 onto qB. Now qB is in the 
                               # state that qC was in before Alice's Bell measurement.
 ```
 
-This is implemented by the `teleportQubit()` function in [qc.py](qc.py).
+This is implemented by the [`teleportQubit()`](https://github.com/nightjuggler/qc/blob/92667c71095a66dbd80e3bbb51dd2cef9171b55b/qc.py#L445-L448) function.
 
-## Example 3 - [Quantum Fourier transform](https://en.wikipedia.org/wiki/Quantum_Fourier_transform)
+## Example 3 - [Quantum Fourier Transform](https://en.wikipedia.org/wiki/Quantum_Fourier_transform)
 
-See the [`quantumFourierTransform()`](https://github.com/nightjuggler/qc/blob/92667c71095a66dbd80e3bbb51dd2cef9171b55b/qc.py#L450-L466) function in [qc.py](qc.py).
+See the [`quantumFourierTransform()`](https://github.com/nightjuggler/qc/blob/92667c71095a66dbd80e3bbb51dd2cef9171b55b/qc.py#L450-L466) function.
 
 ## Acknowledgements
 
