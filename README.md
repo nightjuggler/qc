@@ -44,12 +44,12 @@ See the [`quantumFourierTransform()`](https://github.com/nightjuggler/qc/blob/92
 ## Example 4 - printQubit() and measureQubit()
 
 The state of a qubit can be displayed with `printQubit()`.
-A measurement on a qubit can be simulated with `measureQubit()` which returns 0 or 1 with the probabilities given by the qubit's state vector.
+A measurement on a qubit can be simulated with `measureQubit()` which returns 0 or 1 with the probability given by the qubit's state vector.
 The states of all qubits in the system can be displayed with `printSystem()`.
 
 The following example is also implemented by the [`testTeleport2()`](https://github.com/nightjuggler/qc/blob/8ae2972b53d70aea9b49be52aa2e464e9984ac14/qc-test.py#L31-L47) function in [qc-test.py](qc-test.py).
 
-Two qubits **A** and **B** are created and entangled with each other in the Bell state:
+First, two qubits **A** and **B** are created and entangled with each other in the Bell state.
 
 ```
 >>> from qc import *
@@ -64,7 +64,7 @@ A,B = [
 ]
 ```
 
-The state of **A** is then teleported to **D** (via **C**):
+The state of **A** is then teleported to **D** (via **C**). **D** is now entangled with **B**.
 
 ```
 >>> teleportQubit(qA, qC, qD)
