@@ -37,9 +37,9 @@ encodeBell(b1, b2, qB)        # Bob encodes b1 and b2 onto qB. Now qB is in the 
 
 This is implemented by the `teleportQubit()` function in [qc.py](qc.py).
 
-## Example 3 - [Quantum Fourier Transform](https://en.wikipedia.org/wiki/Quantum_Fourier_transform)
+## Example 3 - [Quantum Fourier transform](https://en.wikipedia.org/wiki/Quantum_Fourier_transform)
 
-See the `quantumFourierTransform()` function in [qc.py](qc.py).
+See the [`quantumFourierTransform()`](https://github.com/nightjuggler/qc/blob/92667c71095a66dbd80e3bbb51dd2cef9171b55b/qc.py#L450-L466) function in [qc.py](qc.py).
 
 ## Acknowledgements
 
