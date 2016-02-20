@@ -41,6 +41,89 @@ This is implemented by the [`teleportQubit()`](https://github.com/nightjuggler/q
 
 See the [`quantumFourierTransform()`](https://github.com/nightjuggler/qc/blob/92667c71095a66dbd80e3bbb51dd2cef9171b55b/qc.py#L450-L466) function.
 
+## Example 4 - printQubit() and measureQubit()
+
+The state of a qubit can be displayed with `printQubit()`.
+A measurement on a qubit can be simulated with `measureQubit()` which returns 0 or 1 with the probabilities given by the qubit's state vector.
+The states of all qubits in the system can be displayed with `printSystem()`.
+
+The following example is also implemented by the [`testTeleport2()`](https://github.com/nightjuggler/qc/blob/8ae2972b53d70aea9b49be52aa2e464e9984ac14/qc-test.py#L31-L47) function in [qc-test.py](qc-test.py).
+
+Two qubits **A** and **B** are created and entangled with each other in the Bell state:
+
+```
+>>> from qc import *
+>>> qA, qB, qC, qD = 'A', 'B', 'C', 'D'
+>>> prepareBell(qA, qB)
+>>> printQubit(qA)
+A,B = [
+  00 ->  0.707106781187  p=0.5
+  01 ->  0  p=0
+  10 ->  0  p=0
+  11 ->  0.707106781187  p=0.5
+]
+```
+
+The state of **A** is then teleported to **D** (via **C**):
+
+```
+>>> teleportQubit(qA, qC, qD)
+>>> printQubit(qD)
+D,B = [
+  00 ->  0.707106781187  p=0.5
+  01 ->  0  p=0
+  10 ->  0  p=0
+  11 ->  0.707106781187  p=0.5
+]
+```
+
+Since **A** and **C** were measured as part of the teleportation protocol, they are no longer in a superposition of states. In this instance, 0 was measured for **A**, and 1 was measured for **C**.
+
+```
+>>> printSystem()
+A = [
+  0 ->  1.0  p=1.0
+  1 ->  0  p=0
+]
+C = [
+  0 ->  0  p=0
+  1 ->  1.0  p=1.0
+]
+D,B = [
+  00 ->  0.707106781187  p=0.5
+  01 ->  0  p=0
+  10 ->  0  p=0
+  11 ->  0.707106781187  p=0.5
+]
+```
+
+If we now measure **D**, we have a 50/50 chance of getting 0 or 1. In this instance, we measured 0, which means that **B** must then also be 0.
+
+```
+>>> measureQubit(qD)
+0
+>>> measureQubit(qB)
+0
+>>> printSystem()
+A = [
+  0 ->  1.0  p=1.0
+  1 ->  0  p=0
+]
+C = [
+  0 ->  0  p=0
+  1 ->  1.0  p=1.0
+]
+B = [
+  0 ->  1.0  p=1.0
+  1 ->  0  p=0
+]
+D = [
+   0 ->  1.0  p=1.0
+   1 ->  0  p=0
+]
+>>>
+```
+
 ## Acknowledgements
 
 This library was inspired by Michael Nielsen's excellent video series [Quantum computing for the determined](http://michaelnielsen.org/blog/quantum-computing-for-the-determined/).
