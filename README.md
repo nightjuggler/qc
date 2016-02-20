@@ -118,13 +118,13 @@ B = [
   1 ->  0  p=0
 ]
 D = [
-   0 ->  1.0  p=1.0
-   1 ->  0  p=0
+  0 ->  1.0  p=1.0
+  1 ->  0  p=0
 ]
 >>>
 ```
 
 ## Acknowledgements
 
-This library was inspired by Michael Nielsen's excellent video series [Quantum computing for the determined](http://michaelnielsen.org/blog/quantum-computing-for-the-determined/).
+This library was inspired by Michael Nielsen's excellent video series "[Quantum computing for the determined](http://michaelnielsen.org/blog/quantum-computing-for-the-determined/)".
 
