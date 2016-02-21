@@ -96,23 +96,7 @@ def testQFT():
 	prepareBell(y[3], y[4])
 	quantumFourierTransform(y)
 
-	compareStateVectors(x[0], y[0], verbose=True)
-
-def compareMatrices(X, Y, verbose=True):
-	rX = roundedMatrix(X)
-	rY = roundedMatrix(Y)
-
-	equal = True
-	for row, (rowX, rowY) in enumerate(zip(rX, rY)):
-		for col, (a, b) in enumerate(zip(rowX, rowY)):
-			if a != b and abs(a - b) > 1.5e-14:
-				equal = False
-				if verbose:
-					print "X[{0},{1}] != Y[{0},{1}]:".format(row, col)
-					print "X[{},{}] = {:.16f}".format(row, col, a)
-					print "Y[{},{}] = {:.16f}".format(row, col, b)
-					print
-	return equal
+	compareStateVectors(x[0], y[0])
 
 def constructQFT3():
 	ct = combineTransforms

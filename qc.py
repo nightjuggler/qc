@@ -51,6 +51,8 @@ __all__ = (
 	'multiplyMatrixByMatrix',
 	'combineTransforms',
 	'roundedMatrix',
+	'compareMatrices',
+	'compareVectors',
 	'roundedStateVector',
 	'compareStateVectors',
 
@@ -115,6 +117,32 @@ def simplify(N):
 
 def roundedMatrix(U):
 	return [[simplify(col) for col in row] for row in U]
+
+def compareMatrices(X, Y, tolerance=1.5e-14, verbose=True):
+	if len(X) != len(Y):
+		if verbose:
+			print "numRows(X) ({}) != numRows(Y) ({})".format(len(X), len(Y))
+		return False
+
+	rX = roundedMatrix(X)
+	rY = roundedMatrix(Y)
+
+	equal = True
+	for row, (rowX, rowY) in enumerate(zip(rX, rY)):
+		if len(rowX) != len(rowY):
+			if verbose:
+				print "numCols(X[{0}]) ({1}) != numCols(Y[{0}]) ({2})".format(row,
+					len(rowX), len(rowY))
+			return False
+		for col, (a, b) in enumerate(zip(rowX, rowY)):
+			if a != b and abs(a - b) > tolerance:
+				equal = False
+				if verbose:
+					print "X[{0},{1}] != Y[{0},{1}]:".format(row, col)
+					print "X[{},{}] = {: .16f}".format(row, col, a)
+					print "Y[{},{}] = {: .16f}".format(row, col, b)
+					print
+	return equal
 
 IdentityMatrix = ((1, 0), (0, 1))
 
@@ -343,20 +371,28 @@ def measureQubit(id):
 def roundedStateVector(id):
 	return qubitStateMap[id].roundedStateVector()
 
-def compareStateVectors(x, y, verbose=False):
-	rx = roundedStateVector(x)
-	ry = roundedStateVector(y)
+def compareVectors(v1, v2, name1='X', name2='Y', tolerance=1.5e-14, verbose=True):
+	if len(v1) != len(v2):
+		if verbose:
+			print "Length of {} ({}) != Length of {} ({})".format(name1, len(v1), name2, len(v2))
+		return False
 
 	equal = True
-	for i, (a, b) in enumerate(zip(rx, ry)):
-		if a != b and abs(a - b) > 1.1e-14:
+	for i, (a, b) in enumerate(zip(v1, v2)):
+		if a != b and abs(a - b) > tolerance:
 			equal = False
 			if verbose:
-				print "{}[{}] != {}[{}]:".format(x, i, y, i)
-				print "{}[{}] = {:.16f}".format(x, i, a)
-				print "{}[{}] = {:.16f}".format(y, i, b)
+				print "{0}[{2}] != {1}[{2}]:".format(name1, name2, i)
+				print "{}[{}] = {: .16f}".format(name1, i, a)
+				print "{}[{}] = {: .16f}".format(name2, i, b)
 				print
 	return equal
+
+def compareStateVectors(qX, qY, tolerance=1.5e-14, verbose=True):
+	vX = roundedStateVector(qX)
+	vY = roundedStateVector(qY)
+
+	return compareVectors(vX, vY, qX, qY, tolerance, verbose)
 
 def qubitArray(namePrefix, size):
 	return [namePrefix + str(i + 1) for i in xrange(size)]
