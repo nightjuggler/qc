@@ -17,7 +17,7 @@ encodeBell(a1, a2, qA)        # Alice encodes a1 and a2 onto qA (which also affe
 b1, b2 = measureBell(qA, qB)  # Bob recovers b1 and b2 by Bell measurement of qA and qB.
 ```
 
-This is implemented by the [`sendSuperdense()`](https://github.com/nightjuggler/qc/blob/92667c71095a66dbd80e3bbb51dd2cef9171b55b/qc.py#L440-L443) function.
+This is implemented by the [`sendSuperdense()`](https://github.com/nightjuggler/qc/blob/8617d8085808abb923eddd8b4a65a310dfe94996/qc.py#L476-L479) function.
 
 ## Example 2 - [Quantum Teleportation](https://en.wikipedia.org/wiki/Quantum_teleportation)
 
@@ -35,17 +35,17 @@ encodeBell(b1, b2, qB)        # Bob encodes b1 and b2 onto qB. Now qB is in the 
                               # state that qC was in before Alice's Bell measurement.
 ```
 
-This is implemented by the [`teleportQubit()`](https://github.com/nightjuggler/qc/blob/92667c71095a66dbd80e3bbb51dd2cef9171b55b/qc.py#L445-L448) function.
+This is implemented by the [`teleportQubit()`](https://github.com/nightjuggler/qc/blob/8617d8085808abb923eddd8b4a65a310dfe94996/qc.py#L481-L484) function.
 
 ## Example 3 - [Quantum Fourier Transform](https://en.wikipedia.org/wiki/Quantum_Fourier_transform)
 
-The [`quantumFourierTransform()`](https://github.com/nightjuggler/qc/blob/92667c71095a66dbd80e3bbb51dd2cef9171b55b/qc.py#L450-L466) function implements the quantum Fourier transform on a list of qubits by applying Hadamard gates and controlled phase shift gates.
+The [`quantumFourierTransform()`](https://github.com/nightjuggler/qc/blob/8617d8085808abb923eddd8b4a65a310dfe94996/qc.py#L486-L502) function implements the quantum Fourier transform on a list of qubits by applying Hadamard gates and controlled phase shift gates.
 
-The [`FourierTransform(N)`](https://github.com/nightjuggler/qc/blob/5054083b953263a6613bca1267b11eb14e432e02/qc.py#L155-L160) function generates the NxN gate matrix for the quantum Fourier transform by computing powers of the primitive N'th [root of unity](https://en.wikipedia.org/wiki/Root_of_unity).
+The [`FourierTransform(N)`](https://github.com/nightjuggler/qc/blob/8617d8085808abb923eddd8b4a65a310dfe94996/qc.py#L183-L188) function generates the NxN gate matrix for the quantum Fourier transform by computing powers of the primitive N'th [root of unity](https://en.wikipedia.org/wiki/Root_of_unity).
 
 `quantumFourierTransform(x)` is equivalent to `applyGate(FourierTransform(1 << len(x)), *x)`
 
-See [`testQFT()`](https://github.com/nightjuggler/qc/blob/5054083b953263a6613bca1267b11eb14e432e02/qc-test.py#L82-L99) in [qc-test.py](qc-test.py) for an example.
+See [`testQFT()`](https://github.com/nightjuggler/qc/blob/8617d8085808abb923eddd8b4a65a310dfe94996/qc-test.py#L82-L99) in [qc-test.py](qc-test.py) for an example.
 
 ## Example 4 - printQubit() and measureQubit()
 
@@ -53,7 +53,7 @@ The state of a qubit can be displayed with `printQubit()`.
 A measurement on a qubit can be simulated with `measureQubit()` which returns 0 or 1 with the probability given by the qubit's state vector.
 The states of all qubits in the system can be displayed with `printSystem()`.
 
-The following example is also implemented by the [`testTeleport2()`](https://github.com/nightjuggler/qc/blob/5054083b953263a6613bca1267b11eb14e432e02/qc-test.py#L31-L49) function in [qc-test.py](qc-test.py).
+The following example is also implemented by the [`testTeleport2()`](https://github.com/nightjuggler/qc/blob/8617d8085808abb923eddd8b4a65a310dfe94996/qc-test.py#L31-L49) function in [qc-test.py](qc-test.py).
 
 First, two qubits **A** and **B** are created and entangled with each other in the Bell state.
 
