@@ -98,54 +98,15 @@ def testQFT():
 
 	compareStateVectors(x[0], y[0])
 
-def constructQFT3():
-	ct = combineTransforms
-	mm = multiplyMatrixByMatrix
-
-	H = HadamardGate
-	I = IdentityMatrix
-	S = SwapGate
-
-	R2 = ControlledGate(PhaseShiftGate(math.pi / 2))
-	R4 = ControlledGate(PhaseShiftGate(math.pi / 4))
-
-	HI = ct(H, I)
-	HII = ct(HI, I)
-	R2S = mm(R2, S)
-	R2SI = ct(mm(R2, S), I)
-	IR4S = ct(I, mm(R4, S))
-
-	F = [[1]]
-	F = ct(F, I)
-	F = mm(H, F)
-	F = ct(F, I)
-	F = mm(R2S, F)
-	F = mm(HI, F)
-
-	compareMatrices(F, FourierTransform(1 << 2))
-
-	F = ct(F, I)
-	F = mm(IR4S, F)
-	F = mm(R2SI, F)
-	F = mm(HII, F)
-
-	compareMatrices(F, FourierTransform(1 << 3))
-
-def multiplyWith(F, gate, gateName, numBefore, numAfter, verbose):
+def multiplyWith(F, gate, numBefore, numAfter):
 	for i in xrange(numBefore):
 		gate = combineTransforms(IdentityMatrix, gate)
-		gateName = 'I' + gateName
-
 	for i in xrange(numAfter):
 		gate = combineTransforms(gate, IdentityMatrix)
-		gateName = gateName + 'I'
-
-	if verbose:
-		print "F = mm({}, F)".format(gateName)
 
 	return multiplyMatrixByMatrix(gate, F)
 
-def constructQFT(N, verbose=False):
+def constructQFT(N):
 	#
 	# This function iteratively builds up the matrix F for the quantum Fourier transform
 	# for vectors of length 2^N (N qubits), starting from the 1x1 identity matrix (which
@@ -160,26 +121,33 @@ def constructQFT(N, verbose=False):
 	# FourierTransform function in qc.py (with argument 1<<N instead of N).
 	#
 	assert N >= 0
+	#
+	# At the beginning of each iteration i (0 <= i < N) of the outer loop, F is already
+	# equal to the QFT matrix for i qubits. In other words, F == FourierTransform(1 << i)
+	# (within some tolerance due to floating point rounding errors). Each iteration then
+	# incorporates into F the operations needed to build the QFT matrix for one additional
+	# qubit. Let's call this additional qubit x[i]. First, F is expanded to operate on x[i]
+	# by taking the Kronecker product between F and the 2x2 identity matrix. This doubles
+	# the number of rows and columns in F, thus quadrupling the size (number of elements)
+	# of F, since operating on an additional qubit means doubling the number of states to
+	# be operated on. Each iteration j (i >= j > 0) of the inner loop then incorporates one
+	# swap and one controlled phase shift operation into F. This corresponds to two actions:
+	# (1) x[i] is swapped with each previous input qubit so that after i iterations of the
+	# inner loop, x[i] becomes y[0] (the i'th input qubit becomes the 0'th output qubit),
+	# and (2) a controlled phase gate R(pi/2^j) is applied to x[i] and each previous qubit,
+	# with x[i] always being the control bit. Finally, a Hadamard transform is incorporated
+	# into F, corresponding to the Hadamard gate being applied to x[i].
 
 	F = [[1]]
 	for i in xrange(N):
-		# Add x[i]
-		if verbose:
-			print "F = ct(F, I)"
 		F = combineTransforms(F, IdentityMatrix)
 
-		# Swap x[i] with x[i-1], then swap x[i-1] with x[i-2], and so on until the
-		# original x[i] becomes x[0]. Along the way, after each swap, apply the
-		# controlled phase gate R(pi/2^(i-j)) on the qubits that were just swapped.
-		for j in xrange(i):
-			piDivisor = 1 << (i - j)
-			gate = ControlledGate(PhaseShiftGate(math.pi / piDivisor))
+		for j in xrange(i, 0, -1):
+			gate = ControlledGate(PhaseShiftGate(math.pi / (1 << j)))
 			gate = multiplyMatrixByMatrix(gate, SwapGate)
-			gateName = "R{}S".format(piDivisor)
-			F = multiplyWith(F, gate, gateName, i - 1 - j, j, verbose)
+			F = multiplyWith(F, gate, j - 1, i - j)
 
-		# Apply the Hadamard gate to x[i] (now x[0])
-		F = multiplyWith(F, HadamardGate, 'H', 0, i, verbose)
+		F = multiplyWith(F, HadamardGate, 0, i)
 
 	compareMatrices(F, FourierTransform(1 << N))
 
@@ -197,5 +165,4 @@ if __name__ == '__main__':
 #	testRandomness(measure23_13_23_41)
 
 	testQFT()
-	constructQFT3()
 	constructQFT(5)
