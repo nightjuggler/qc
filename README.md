@@ -45,7 +45,7 @@ The [`FourierTransform(N)`](https://github.com/nightjuggler/qc/blob/8617d8085808
 
 `quantumFourierTransform(x)` is equivalent to `applyGate(FourierTransform(1 << len(x)), *x)`
 
-See [`testQFT()`](https://github.com/nightjuggler/qc/blob/8617d8085808abb923eddd8b4a65a310dfe94996/qc-test.py#L82-L99) in [qc-test.py](qc-test.py) for an example.
+See [`testQFT()`](https://github.com/nightjuggler/qc/blob/02cf828eab73ac33a4f0df760db4848ef1d6a7c2/qc-test.py#L82-L99) in [qc-test.py](qc-test.py) for an example.
 
 ## Example 4 - printQubit() and measureQubit()
 
@@ -53,7 +53,7 @@ The state of a qubit can be displayed with `printQubit()`.
 A measurement on a qubit can be simulated with `measureQubit()` which returns 0 or 1 with the probability given by the qubit's state vector.
 The states of all qubits in the system can be displayed with `printSystem()`.
 
-The following example is also implemented by the [`testTeleport2()`](https://github.com/nightjuggler/qc/blob/8617d8085808abb923eddd8b4a65a310dfe94996/qc-test.py#L31-L49) function in [qc-test.py](qc-test.py).
+The following example is also implemented by the [`testTeleport2()`](https://github.com/nightjuggler/qc/blob/02cf828eab73ac33a4f0df760db4848ef1d6a7c2/qc-test.py#L31-L49) function in [qc-test.py](qc-test.py).
 
 First, two qubits **A** and **B** are created and entangled with each other in the Bell state.
 
