@@ -126,17 +126,17 @@ def constructQFT(N):
 	# equal to the QFT matrix for i qubits. In other words, F == FourierTransform(1 << i)
 	# (within some tolerance due to floating point rounding errors). Each iteration then
 	# incorporates into F the operations needed to build the QFT matrix for one additional
-	# qubit. Let's call this additional qubit x[i]. First, F is expanded to operate on x[i]
-	# by taking the Kronecker product between F and the 2x2 identity matrix. This doubles
-	# the number of rows and columns in F, thus quadrupling the size (number of elements)
-	# of F, since operating on an additional qubit means doubling the number of states to
-	# be operated on. Each iteration j (i >= j > 0) of the inner loop then incorporates one
-	# swap and one controlled phase shift operation into F. This corresponds to two actions:
-	# (1) x[i] is swapped with each previous input qubit so that after i iterations of the
-	# inner loop, x[i] becomes y[0] (the i'th input qubit becomes the 0'th output qubit),
-	# and (2) a controlled phase gate R(pi/2^j) is applied to x[i] and each previous qubit,
-	# with x[i] always being the control bit. Finally, a Hadamard transform is incorporated
-	# into F, corresponding to the Hadamard gate being applied to x[i].
+	# qubit. Let's call this additional qubit x[i]. First, F is expanded by setting it to
+	# the Kronecker product of itself and the 2x2 identity matrix. This doubles the number
+	# of rows and columns in F, thus quadrupling the number of elements in F. Operating on
+	# an additional qubit means operating on double the number of states. Each iteration j
+	# (i >= j > 0) of the inner loop then incorporates one swap and one controlled phase
+	# shift operation into F. This causes x[i] to be swapped with each previous input qubit
+	# so that after i iterations of the inner loop, x[i] becomes y[0] (the i'th input qubit
+	# becomes the 0'th output qubit). Also, after each swap, the controlled phase gate
+	# R(pi/2^j) is applied to x[i] and the qubit with which it was just swapped (x[i-j]),
+	# with x[i] as the control bit. Finally, a Hadamard transform is incorporated into F,
+	# corresponding to the Hadamard gate being applied to x[i].
 
 	F = [[1]]
 	for i in xrange(N):
