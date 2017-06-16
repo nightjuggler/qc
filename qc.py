@@ -242,7 +242,7 @@ qubitStateMap = {}
 class QubitState(object):
 	def __init__(self, id, pa0, pa1):
 		assert id not in qubitStateMap
-		assert 1.0 - (abs(pa0)**2 + abs(pa1)**2) < 1e-14
+		assert abs(1.0 - (abs(pa0)**2 + abs(pa1)**2)) < 1e-14
 
 		self.stateVector = [pa0, pa1]
 		self.qubitNames = [id]
@@ -298,7 +298,7 @@ class QubitState(object):
 		prob0 = sum([abs(pa)**2 for pa in V[:vlen/2]])
 		prob1 = sum([abs(pa)**2 for pa in V[vlen/2:]])
 
-		assert 1.0 - (prob0 + prob1) < 1e-14
+		assert abs(1.0 - (prob0 + prob1)) < 1e-14
 
 		if random.random() < prob0:
 			measurement = 0
