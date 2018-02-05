@@ -240,14 +240,18 @@ def changeLeadingState(U, V):
 qubitStateMap = {}
 
 class QubitState(object):
-	def __init__(self, id, pa0, pa1):
-		assert id not in qubitStateMap
+	def __init__(self, name, pa0, pa1):
+		#
+		# pa0 is the probability amplitude for the 0 state
+		# pa1 is the probability amplitude for the 1 state
+		#
+		assert name not in qubitStateMap
 		assert abs(1.0 - (abs(pa0)**2 + abs(pa1)**2)) < 1e-14
 
 		self.stateVector = [pa0, pa1]
-		self.qubitNames = [id]
+		self.qubitNames = [name]
 
-		qubitStateMap[id] = self
+		qubitStateMap[name] = self
 
 	def extend(self, otherState):
 		if self is otherState:
@@ -256,8 +260,8 @@ class QubitState(object):
 		self.stateVector = combineStates(self.stateVector, otherState.stateVector)
 		self.qubitNames.extend(otherState.qubitNames)
 
-		for id in otherState.qubitNames:
-			qubitStateMap[id] = self
+		for name in otherState.qubitNames:
+			qubitStateMap[name] = self
 
 	def length(self):
 		return len(self.qubitNames)
@@ -266,28 +270,28 @@ class QubitState(object):
 		if self.qubitNames[:len(newOrder)] == newOrder:
 			return
 
-		idMap = dict([(id, i) for i, id in enumerate(reversed(self.qubitNames))])
+		nameMap = {name: i for i, name in enumerate(reversed(self.qubitNames))}
 
-		newOrder = [(id, idMap.pop(id)) for id in newOrder]
+		newOrder = [(name, nameMap.pop(name)) for name in newOrder]
 
-		newOrder.extend([(id, idMap[id]) for id in self.qubitNames if id in idMap])
+		newOrder.extend([(name, nameMap.pop(name)) for name in self.qubitNames if name in nameMap])
 
-		bitShift = [(1 << bit, bit, shift) for bit, (id, shift) in enumerate(reversed(newOrder))]
+		bitShift = [(newPos, oldPos) for newPos, (name, oldPos) in enumerate(reversed(newOrder))]
 
 		self.stateVector = [
 			self.stateVector[
-				sum([((state & mask) >> bit << shift) for mask, bit, shift in bitShift])
+				sum([(((state >> newPos) & 1) << oldPos) for newPos, oldPos in bitShift])
 			]
 			for state in xrange(len(self.stateVector))
 		]
 
-		self.qubitNames = [id for id, i in newOrder]
+		self.qubitNames = [name for name, i in newOrder]
 
 	def transform(self, unitaryMatrix):
 		changeLeadingState(unitaryMatrix, self.stateVector)
 
-	def measure(self, id):
-		self.reorder([id])
+	def measure(self, name):
+		self.reorder([name])
 
 		# The probability that the measurement will be 0 is the sum of the squares of
 		# the absolute values of the first half of the elements of the state vector.
@@ -314,9 +318,9 @@ class QubitState(object):
 		for i, pa in enumerate(V):
 			V[i] = pa / norm
 
-		del qubitStateMap[id]
+		del qubitStateMap[name]
 		del self.qubitNames[0]
-		QubitState(id, prob0, prob1)
+		QubitState(name, prob0, prob1)
 
 		return measurement
 
@@ -324,29 +328,29 @@ class QubitState(object):
 		return [simplify(pa) for pa in self.stateVector]
 
 	def printState(self):
-		n = len(self.qubitNames)
+		stateFormat = '  {:0' + str(len(self.qubitNames)) + 'b} -> {: }  p={}'
 
 		print ','.join(self.qubitNames), '= ['
-		for i, pa in enumerate(self.stateVector):
-			print ('  {:0' + str(n) + 'b} -> {: }  p={}').format(i, simplify(pa), simplify(abs(pa)**2))
+		for state, pa in enumerate(self.stateVector):
+			print stateFormat.format(state, simplify(pa), simplify(abs(pa)**2))
 		print ']'
 
 def clearSystem():
 	qubitStateMap.clear()
 
-def createQubit(id, pa0, pa1):
-	QubitState(id, pa0, pa1)
+def createQubit(name, pa0, pa1):
+	QubitState(name, pa0, pa1)
 
-def removeQubit(id):
-	assert qubitStateMap[id].length() == 1
-	del qubitStateMap[id]
+def removeQubit(name):
+	assert qubitStateMap[name].length() == 1
+	del qubitStateMap[name]
 
-def printQubit(id):
-	qubitStateMap[id].printState()
+def printQubit(name):
+	qubitStateMap[name].printState()
 
 def printSystem():
 	printed = {}
-	for id, state in qubitStateMap.iteritems():
+	for name, state in qubitStateMap.iteritems():
 		if state not in printed:
 			state.printState()
 			printed[state] = True
@@ -359,17 +363,17 @@ def applyGate(gate, *qubits):
 	# Combine state vectors as necessary so all the qubits are in the same state vector:
 
 	qState = qubitStateMap[qubits[0]]
-	for id in qubits[1:]:
-		qState.extend(qubitStateMap[id])
+	for name in qubits[1:]:
+		qState.extend(qubitStateMap[name])
 
 	qState.reorder(qubits)
 	qState.transform(gate)
 
-def measureQubit(id):
-	return qubitStateMap[id].measure(id)
+def measureQubit(name):
+	return qubitStateMap[name].measure(name)
 
-def roundedStateVector(id):
-	return qubitStateMap[id].roundedStateVector()
+def roundedStateVector(name):
+	return qubitStateMap[name].roundedStateVector()
 
 def compareVectors(v1, v2, name1='X', name2='Y', tolerance=1.5e-14, verbose=True):
 	if len(v1) != len(v2):
