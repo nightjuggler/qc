@@ -101,7 +101,7 @@ def multiplyMatrixByScalar(scalar, U):
 def multiplyMatrixByMatrix(U1, U2):
 	validMatrix(U2, validMatrix(U1))
 
-	U2 = list(zip(*U2))
+	U2 = zip(*U2)
 	return [[sum([e1 * e2 for e1, e2 in zip(row1, row2)]) for row2 in U2] for row1 in U1]
 
 def simplify(N):
@@ -121,7 +121,7 @@ def roundedMatrix(U):
 def compareMatrices(X, Y, tolerance=1.5e-14, verbose=True):
 	if len(X) != len(Y):
 		if verbose:
-			print("numRows(X) ({}) != numRows(Y) ({})".format(len(X), len(Y)))
+			print "numRows(X) ({}) != numRows(Y) ({})".format(len(X), len(Y))
 		return False
 
 	rX = roundedMatrix(X)
@@ -131,23 +131,23 @@ def compareMatrices(X, Y, tolerance=1.5e-14, verbose=True):
 	for row, (rowX, rowY) in enumerate(zip(rX, rY)):
 		if len(rowX) != len(rowY):
 			if verbose:
-				print("numCols(X[{0}]) ({1}) != numCols(Y[{0}]) ({2})".format(row,
-					len(rowX), len(rowY)))
+				print "numCols(X[{0}]) ({1}) != numCols(Y[{0}]) ({2})".format(row,
+					len(rowX), len(rowY))
 			return False
 		for col, (a, b) in enumerate(zip(rowX, rowY)):
 			if a != b and abs(a - b) > tolerance:
 				equal = False
 				if verbose:
-					print("X[{0},{1}] != Y[{0},{1}]:".format(row, col))
-					print("X[{},{}] = {: .16f}".format(row, col, a))
-					print("Y[{},{}] = {: .16f}".format(row, col, b))
-					print()
+					print "X[{0},{1}] != Y[{0},{1}]:".format(row, col)
+					print "X[{},{}] = {: .16f}".format(row, col, a)
+					print "Y[{},{}] = {: .16f}".format(row, col, b)
+					print
 	return equal
 
 IdentityMatrix = ((1, 0), (0, 1))
 
 def IdentityMatrixN(N):
-	return [[1 if row == col else 0 for col in range(N)] for row in range(N)]
+	return [[1 if row == col else 0 for col in xrange(N)] for row in xrange(N)]
 
 HadamardGate = multiplyMatrixByScalar(1/math.sqrt(2), ((1, 1), (1, -1)))
 
@@ -185,7 +185,7 @@ def FourierTransform(N):
 	w = complex(math.cos(phi), math.sin(phi))
 	sqrtN = math.sqrt(N)
 
-	return [[(w ** (row * col) / sqrtN) for col in range(N)] for row in range(N)]
+	return [[(w ** (row * col) / sqrtN) for col in xrange(N)] for row in xrange(N)]
 
 def changeState(U, V):
 	# Input:
@@ -282,7 +282,7 @@ class QubitState(object):
 			self.stateVector[
 				sum([(((state >> newPos) & 1) << oldPos) for newPos, oldPos in bitShift])
 			]
-			for state in range(len(self.stateVector))
+			for state in xrange(len(self.stateVector))
 		]
 
 		self.qubitNames = [name for name, i in newOrder]
@@ -299,19 +299,19 @@ class QubitState(object):
 		V = self.stateVector
 		vlen = len(V)
 
-		prob0 = sum([abs(pa)**2 for pa in V[:vlen // 2]])
-		prob1 = sum([abs(pa)**2 for pa in V[vlen // 2:]])
+		prob0 = sum([abs(pa)**2 for pa in V[:vlen/2]])
+		prob1 = sum([abs(pa)**2 for pa in V[vlen/2:]])
 
 		assert abs(1.0 - (prob0 + prob1)) < 1e-14
 
 		if random.random() < prob0:
 			measurement = 0
-			V[vlen // 2:] = []
+			V[vlen/2:] = []
 			norm = math.sqrt(prob0)
 			prob0, prob1 = 1, 0
 		else:
 			measurement = 1
-			V[:vlen // 2] = []
+			V[:vlen/2] = []
 			norm = math.sqrt(prob1)
 			prob0, prob1 = 0, 1
 
@@ -330,10 +330,10 @@ class QubitState(object):
 	def printState(self):
 		stateFormat = '  {:0' + str(len(self.qubitNames)) + 'b} -> {: }  p={}'
 
-		print(','.join(self.qubitNames), '= [')
+		print ','.join(self.qubitNames), '= ['
 		for state, pa in enumerate(self.stateVector):
-			print(stateFormat.format(state, simplify(pa), simplify(abs(pa)**2)))
-		print(']')
+			print stateFormat.format(state, simplify(pa), simplify(abs(pa)**2))
+		print ']'
 
 def clearSystem():
 	qubitStateMap.clear()
@@ -378,7 +378,7 @@ def roundedStateVector(name):
 def compareVectors(v1, v2, name1='X', name2='Y', tolerance=1.5e-14, verbose=True):
 	if len(v1) != len(v2):
 		if verbose:
-			print("Length of {} ({}) != Length of {} ({})".format(name1, len(v1), name2, len(v2)))
+			print "Length of {} ({}) != Length of {} ({})".format(name1, len(v1), name2, len(v2))
 		return False
 
 	equal = True
@@ -386,10 +386,10 @@ def compareVectors(v1, v2, name1='X', name2='Y', tolerance=1.5e-14, verbose=True
 		if a != b and abs(a - b) > tolerance:
 			equal = False
 			if verbose:
-				print("{0}[{2}] != {1}[{2}]:".format(name1, name2, i))
-				print("{}[{}] = {: .16f}".format(name1, i, a))
-				print("{}[{}] = {: .16f}".format(name2, i, b))
-				print()
+				print "{0}[{2}] != {1}[{2}]:".format(name1, name2, i)
+				print "{}[{}] = {: .16f}".format(name1, i, a)
+				print "{}[{}] = {: .16f}".format(name2, i, b)
+				print
 	return equal
 
 def compareStateVectors(qX, qY, tolerance=1.5e-14, verbose=True):
@@ -399,7 +399,7 @@ def compareStateVectors(qX, qY, tolerance=1.5e-14, verbose=True):
 	return compareVectors(vX, vY, qX, qY, tolerance, verbose)
 
 def qubitArray(namePrefix, size):
-	return [namePrefix + str(i + 1) for i in range(size)]
+	return [namePrefix + str(i + 1) for i in xrange(size)]
 
 def prepareBell(q1, q2, initialState=0):
 	# Input:
@@ -494,13 +494,13 @@ def quantumFourierTransform(x):
 	# This is equivalent to applyGate(FourierTransform(1 << len(x)), *x)
 	#
 	n = len(x)
-	for i in range(n):
-		for j in range(i, 0, -1):
+	for i in xrange(n):
+		for j in xrange(i, 0, -1):
 			R = ControlledGate(PhaseShiftGate(math.pi / (1 << j)))
 			applyGate(R, x[i], x[i - j])
 		applyGate(HadamardGate, x[i])
 
-	for i in range(n // 2):
+	for i in xrange(n / 2):
 		applyGate(SwapGate, x[i], x[n - 1 - i])
 
 	applyGate(IdentityMatrixN(1 << n), *x) # Reorder the state vector to be in the same order as the input x

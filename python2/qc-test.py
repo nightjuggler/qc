@@ -1,4 +1,4 @@
-#!/usr/local/bin/python3
+#!/usr/bin/python
 #
 # Various functions to test qc.py
 #
@@ -71,13 +71,13 @@ def measure23_13_23_41():
 
 def testRandomness(getMeasurement):
 	count = [0] * 16
-	for i in range(10000):
+	for i in xrange(10000):
 		clearSystem()
 		m = getMeasurement()
 		count[m] += 1
 	for m, c in enumerate(count):
 		if c > 0:
-			print('{:04b}: {}'.format(m, c))
+			print '{:04b}: {}'.format(m, c)
 
 def testQFT():
 	clearSystem()
@@ -99,9 +99,9 @@ def testQFT():
 	compareStateVectors(x[0], y[0])
 
 def multiplyWith(F, gate, numBefore, numAfter):
-	for i in range(numBefore):
+	for i in xrange(numBefore):
 		gate = combineTransforms(IdentityMatrix, gate)
-	for i in range(numAfter):
+	for i in xrange(numAfter):
 		gate = combineTransforms(gate, IdentityMatrix)
 
 	return multiplyMatrixByMatrix(gate, F)
@@ -139,10 +139,10 @@ def constructQFT(N):
 	# corresponding to the Hadamard gate being applied to x[i].
 
 	F = [[1]]
-	for i in range(N):
+	for i in xrange(N):
 		F = combineTransforms(F, IdentityMatrix)
 
-		for j in range(i, 0, -1):
+		for j in xrange(i, 0, -1):
 			gate = ControlledGate(PhaseShiftGate(math.pi / (1 << j)))
 			gate = multiplyMatrixByMatrix(gate, SwapGate)
 			F = multiplyWith(F, gate, j - 1, i - j)
