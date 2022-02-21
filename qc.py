@@ -349,11 +349,11 @@ def printQubit(name):
 	qubitStateMap[name].printState()
 
 def printSystem():
-	printed = {}
-	for name, state in qubitStateMap.iteritems():
+	printed = set()
+	for name, state in sorted(qubitStateMap.items()):
 		if state not in printed:
 			state.printState()
-			printed[state] = True
+			printed.add(state)
 
 def applyGate(gate, *qubits):
 	ulen = validMatrix(gate)
