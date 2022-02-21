@@ -102,7 +102,7 @@ def multiplyMatrixByMatrix(U1, U2):
 	validMatrix(U2, validMatrix(U1))
 
 	U2 = list(zip(*U2))
-	return [[sum([e1 * e2 for e1, e2 in zip(row1, row2)]) for row2 in U2] for row1 in U1]
+	return [[sum(e1 * e2 for e1, e2 in zip(row1, row2)) for row2 in U2] for row1 in U1]
 
 def simplify(N):
 	real = round(N.real, 14)
@@ -147,7 +147,7 @@ def compareMatrices(X, Y, tolerance=1.5e-14, verbose=True):
 IdentityMatrix = ((1, 0), (0, 1))
 
 def IdentityMatrixN(N):
-	return [[1 if row == col else 0 for col in range(N)] for row in range(N)]
+	return [[int(row == col) for col in range(N)] for row in range(N)]
 
 HadamardGate = multiplyMatrixByScalar(1/math.sqrt(2), ((1, 1), (1, -1)))
 
@@ -185,7 +185,7 @@ def FourierTransform(N):
 	w = complex(math.cos(phi), math.sin(phi))
 	sqrtN = math.sqrt(N)
 
-	return [[(w ** (row * col) / sqrtN) for col in range(N)] for row in range(N)]
+	return [[w ** (row * col) / sqrtN for col in range(N)] for row in range(N)]
 
 def changeState(U, V):
 	# Input:
@@ -196,10 +196,7 @@ def changeState(U, V):
 
 	validMatrix(U, validState(V))
 
-	newState = [sum([ue * ve for ue, ve in zip(row, V)]) for row in U]
-
-	for i, element in enumerate(newState):
-		V[i] = element
+	V[:] = [sum(ue * ve for ue, ve in zip(row, V)) for row in U]
 
 	return V
 
@@ -280,7 +277,7 @@ class QubitState(object):
 
 		self.stateVector = [
 			self.stateVector[
-				sum([(((state >> newPos) & 1) << oldPos) for newPos, oldPos in bitShift])
+				sum((((state >> newPos) & 1) << oldPos) for newPos, oldPos in bitShift)
 			]
 			for state in range(len(self.stateVector))
 		]
@@ -299,8 +296,8 @@ class QubitState(object):
 		V = self.stateVector
 		vlen = len(V)
 
-		prob0 = sum([abs(pa)**2 for pa in V[:vlen // 2]])
-		prob1 = sum([abs(pa)**2 for pa in V[vlen // 2:]])
+		prob0 = sum(abs(pa)**2 for pa in V[:vlen // 2])
+		prob1 = sum(abs(pa)**2 for pa in V[vlen // 2:])
 
 		assert abs(1.0 - (prob0 + prob1)) < 1e-14
 
@@ -315,8 +312,7 @@ class QubitState(object):
 			norm = math.sqrt(prob1)
 			prob0, prob1 = 0, 1
 
-		for i, pa in enumerate(V):
-			V[i] = pa / norm
+		V[:] = [pa / norm for pa in V]
 
 		del qubitStateMap[name]
 		del self.qubitNames[0]
@@ -422,12 +418,12 @@ def prepareBell(q1, q2, initialState=0):
 
 	assert 0 <= initialState <= 3
 
-	if (initialState & 2) == 0:
+	if initialState & 2 == 0:
 		createQubit(q1, 1, 0)
 	else:
 		createQubit(q1, 0, 1)
 
-	if (initialState & 1) == 0:
+	if initialState & 1 == 0:
 		createQubit(q2, 1, 0)
 	else:
 		createQubit(q2, 0, 1)
